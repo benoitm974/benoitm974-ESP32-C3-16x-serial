@@ -10,14 +10,12 @@
 // - GPIO7-10:  Multiplexer control pins
 //
 
-// I2C pins for OLED display (SSD1306)
+// I2C pins for OLED display (SSD1306 72x40 with u8g2)
 #define SDA_PIN 5
 #define SCL_PIN 6
 
-// Display configuration
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
+// Display configuration for u8g2 SSD1306 72x40
+// No additional configuration needed - u8g2 handles this natively
 #define SCREEN_ADDRESS 0x3C
 
 // Hardware Serial pins for ESP32-C3 SBC Communication

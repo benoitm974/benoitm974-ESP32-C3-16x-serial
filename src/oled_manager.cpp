@@ -1,42 +1,36 @@
 #include "oled_manager.h"
 
 bool OLEDManager::init() {
-    // Initialize I2C
-    Wire.begin(SDA_PIN, SCL_PIN);
-    
-    // Create display object
-    display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    // Create u8g2 display object with hardware I2C
+    // Constructor: u8g2_ssd1306_72x40_er_f_hw_i2c(rotation, reset_pin, scl_pin, sda_pin)
+    display = new U8G2_SSD1306_72X40_ER_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE, SCL_PIN, SDA_PIN);
     
     // Initialize display
-    if (!display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-        Serial.println("SSD1306 allocation failed");
-        return false;
-    }
+    display->begin();
     
-    // Clear display and set text properties
-    display->clearDisplay();
-    display->setTextSize(1);
-    display->setTextColor(SSD1306_WHITE);
+    // Clear display and set font
+    display->clearBuffer();
+    display->setFont(u8g2_font_6x10_tf);  // Small, clear font for status display
     
-    // Show initialization message (using proper text alignment)
-    display->setTextSize(1);
-    display->setTextColor(SSD1306_WHITE);
+    // Show initialization message
+    display->clearBuffer();
     
-    // Center "WiFi" text within visible area (moved down 6px)
-    int16_t x1, y1;
-    uint16_t w, h;
-    display->getTextBounds("WiFi", 0, 0, &x1, &y1, &w, &h);
-    display->setCursor(DISPLAY_OFFSET_X + (VISIBLE_WIDTH - w) / 2, DISPLAY_OFFSET_Y + 14);
-    display->println("WiFi");
+    // Center "WiFi" text
+    const char* wifi_text = "WiFi";
+    int wifi_width = display->getStrWidth(wifi_text);
+    display->setCursor((DISPLAY_WIDTH - wifi_width) / 2, 16);
+    display->print(wifi_text);
     
-    // Center "Starting..." text within visible area (moved down 6px)
-    display->getTextBounds("Starting...", 0, 0, &x1, &y1, &w, &h);
-    display->setCursor(DISPLAY_OFFSET_X + (VISIBLE_WIDTH - w) / 2, DISPLAY_OFFSET_Y + 26);
-    display->println("Starting...");
-    display->display();
+    // Center "Starting..." text
+    const char* start_text = "Starting...";
+    int start_width = display->getStrWidth(start_text);
+    display->setCursor((DISPLAY_WIDTH - start_width) / 2, 28);
+    display->print(start_text);
+    
+    display->sendBuffer();
     
     initialized = true;
-    Serial.println("OLED display initialized");
+    Serial.println("OLED display initialized with u8g2");
     return true;
 }
 
@@ -45,26 +39,24 @@ void OLEDManager::displayIP(const String& ipLast3) {
         return;
     }
     
-    display->clearDisplay();
-    display->setTextColor(SSD1306_WHITE);
+    display->clearBuffer();
     
-    // WiFi IP display using proper text alignment
-    int16_t x1, y1;
-    uint16_t w, h;
+    // Display "WiFi IP:" label
+    const char* label = "WiFi IP:";
+    int label_width = display->getStrWidth(label);
+    display->setCursor((DISPLAY_WIDTH - label_width) / 2, 16);
+    display->print(label);
     
-    // Center "WiFi IP:" label within visible area (moved down 6px)
-    display->setTextSize(1);
-    display->getTextBounds("WiFi IP:", 0, 0, &x1, &y1, &w, &h);
-    display->setCursor(DISPLAY_OFFSET_X + (VISIBLE_WIDTH - w) / 2, DISPLAY_OFFSET_Y + 14);
-    display->println("WiFi IP:");
+    // Display IP digits in larger font
+    display->setFont(u8g2_font_10x20_tf);  // Larger font for IP
+    int ip_width = display->getStrWidth(ipLast3.c_str());
+    display->setCursor((DISPLAY_WIDTH - ip_width) / 2, 35);
+    display->print(ipLast3);
     
-    // Center IP digits within visible area (larger text, moved down 6px)
-    display->setTextSize(2);
-    display->getTextBounds(ipLast3, 0, 0, &x1, &y1, &w, &h);
-    display->setCursor(DISPLAY_OFFSET_X + (VISIBLE_WIDTH - w) / 2, DISPLAY_OFFSET_Y + 30);
-    display->println(ipLast3);
+    // Reset to normal font
+    display->setFont(u8g2_font_6x10_tf);
     
-    display->display();
+    display->sendBuffer();
 }
 
 void OLEDManager::displayStatus(const String& ipLast3, bool wsConnected, int sbcChannel) {
@@ -72,26 +64,24 @@ void OLEDManager::displayStatus(const String& ipLast3, bool wsConnected, int sbc
         return;
     }
     
-    display->clearDisplay();
-    display->setTextColor(SSD1306_WHITE);
+    display->clearBuffer();
     
-    int16_t x1, y1;
-    uint16_t w, h;
-    
-    // Top: IP address last 3 digits (centered within visible area, moved down 6px)
-    display->setTextSize(2);
-    display->getTextBounds(ipLast3, 0, 0, &x1, &y1, &w, &h);
-    display->setCursor(DISPLAY_OFFSET_X + (VISIBLE_WIDTH - w) / 2, DISPLAY_OFFSET_Y + 14);
+    // Top: IP address last 3 digits (larger font)
+    display->setFont(u8g2_font_10x20_tf);
+    int ip_width = display->getStrWidth(ipLast3.c_str());
+    display->setCursor((DISPLAY_WIDTH - ip_width) / 2, 20);
     display->print(ipLast3);
     
-    // Bottom: SBC status (centered within visible area, moved down 6px)
-    display->setTextSize(2);
+    // Bottom: SBC status (larger font)
     String statusText = wsConnected ? String(sbcChannel + 1) : "X";
-    display->getTextBounds(statusText, 0, 0, &x1, &y1, &w, &h);
-    display->setCursor(DISPLAY_OFFSET_X + (VISIBLE_WIDTH - w) / 2, DISPLAY_OFFSET_Y + 34);
+    int status_width = display->getStrWidth(statusText.c_str());
+    display->setCursor((DISPLAY_WIDTH - status_width) / 2, 38);
     display->print(statusText);
     
-    display->display();
+    // Reset to normal font
+    display->setFont(u8g2_font_6x10_tf);
+    
+    display->sendBuffer();
 }
 
 void OLEDManager::clear() {
@@ -99,8 +89,8 @@ void OLEDManager::clear() {
         return;
     }
     
-    display->clearDisplay();
-    display->display();
+    display->clearBuffer();
+    display->sendBuffer();
 }
 
 void OLEDManager::update() {
@@ -108,5 +98,5 @@ void OLEDManager::update() {
         return;
     }
     
-    display->display();
+    display->sendBuffer();
 }

@@ -1,18 +1,13 @@
 #ifndef OLED_MANAGER_H
 #define OLED_MANAGER_H
 
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <U8g2lib.h>
 #include "pins.h"
 
-// Display offset configuration for ABROBOT ESP32-C3 board
-// ABROBOT specification: 72×40 effective resolution with offset (30, 12)
-// Libraries require 128×64 setting but drawing limited to 72×40 to avoid clipping
-#define DISPLAY_OFFSET_X 30
-#define DISPLAY_OFFSET_Y 12
-#define VISIBLE_WIDTH 72
-#define VISIBLE_HEIGHT 40
+// u8g2 library natively supports 72×40 SSD1306 displays
+// No offset calculations needed - direct pixel addressing
+#define DISPLAY_WIDTH 72
+#define DISPLAY_HEIGHT 40
 
 class OLEDManager {
 public:
@@ -47,7 +42,7 @@ public:
     void update();
 
 private:
-    Adafruit_SSD1306* display = nullptr;
+    U8G2_SSD1306_72X40_ER_F_HW_I2C* display = nullptr;
     bool initialized = false;
 };
 
