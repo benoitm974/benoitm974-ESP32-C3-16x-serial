@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
     <link rel="icon" type="image/svg+xml" href="terminal-icon.svg">
 </head>
 <body>
@@ -24,16 +25,104 @@
                 <button onclick="sendControlChar(26)" title="Ctrl+Z - Suspend">^Z</button>
                 <button onclick="sendControlChar(17)" title="Ctrl+Q - Resume">^Q</button>
                 <button onclick="sendControlChar(19)" title="Ctrl+S - Pause">^S</button>
+                |
+                <button id="terminal-toggle" onclick="toggleTerminalMode()" title="Switch terminal implementation" class="terminal-switch">
+                    <span id="toggle-text">Switch to Basic</span>
+                </button>
             </div>
         </div>
         <div id="terminal"></div>
         <div class="status">
-            Status: <span id="status">Connecting...</span> |
-            Channel: <span id="channel">SBC1</span> |
-            <label><input type="checkbox" id="localEcho" checked> Local Echo</label> |
-            Press any key to type
+            Status: <span id="status">Loading...</span> | 
+            Channel: <span id="channel">SBC1</span> | 
+            Terminal: <span id="terminal-type">Detecting...</span> |
+            <label id="local-echo-container" style="display: none;">
+                <input type="checkbox" id="localEcho" checked> Local Echo
+            </label>
         </div>
     </div>
-    <script src="script.js"></script>
+    
+    <script>
+        // Global terminal state
+        window.terminalState = {
+            mode: 'loading', // 'loading', 'xterm', 'basic'
+            xtermAvailable: false,
+            currentTerminal: null,
+            ws: null,
+            isConnected: false,
+            currentChannel: 0,
+            messageBuffer: [] // Store messages when switching terminals
+        };
+        
+        // Try to load xterm.js from CDN first
+        function loadXtermJS() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js';
+            script.onload = function() {
+                console.log('xterm.js loaded from CDN');
+                window.terminalState.xtermAvailable = true;
+                initializeTerminal('xterm');
+            };
+            script.onerror = function() {
+                console.log('xterm.js CDN failed, using basic terminal');
+                window.terminalState.xtermAvailable = false;
+                initializeTerminal('basic');
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Initialize terminal with specified mode
+        function initializeTerminal(mode) {
+            if (mode === 'xterm' && window.terminalState.xtermAvailable) {
+                initXtermTerminal();
+            } else {
+                initBasicTerminal();
+            }
+            
+            // Initialize WebSocket if not already done
+            if (!window.terminalState.ws) {
+                initWebSocket();
+            }
+        }
+        
+        // Toggle between terminal modes
+        function toggleTerminalMode() {
+            const currentMode = window.terminalState.mode;
+            const toggleButton = document.getElementById('toggle-text');
+            
+            if (currentMode === 'xterm' && window.terminalState.xtermAvailable) {
+                // Switch to basic
+                destroyCurrentTerminal();
+                initBasicTerminal();
+                toggleButton.textContent = 'Switch to xterm.js';
+            } else if (currentMode === 'basic' && window.terminalState.xtermAvailable) {
+                // Switch to xterm
+                destroyCurrentTerminal();
+                initXtermTerminal();
+                toggleButton.textContent = 'Switch to Basic';
+            }
+        }
+        
+        // Destroy current terminal
+        function destroyCurrentTerminal() {
+            const terminal = document.getElementById('terminal');
+            terminal.innerHTML = '';
+            
+            if (window.terminalState.currentTerminal && window.terminalState.currentTerminal.dispose) {
+                window.terminalState.currentTerminal.dispose();
+            }
+            
+            window.terminalState.currentTerminal = null;
+        }
+        
+        // Load the unified terminal script
+        const unifiedScript = document.createElement('script');
+        unifiedScript.src = 'script.js';
+        unifiedScript.onload = function() {
+            // Start by trying to load xterm.js
+            loadXtermJS();
+        };
+        document.head.appendChild(unifiedScript);
+    </script>
 </body>
 </html>
