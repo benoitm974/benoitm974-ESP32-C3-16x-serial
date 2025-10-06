@@ -18,11 +18,19 @@
                 <button id="btn3" onclick="selectChannel(3)">SBC4</button>
                 <button id="btn4" onclick="selectChannel(4)">SBC5</button>
             </div>
+            <div class="control-buttons">
+                <button onclick="sendControlChar(3)" title="Ctrl+C - Interrupt">^C</button>
+                <button onclick="sendControlChar(4)" title="Ctrl+D - EOF">^D</button>
+                <button onclick="sendControlChar(26)" title="Ctrl+Z - Suspend">^Z</button>
+                <button onclick="sendControlChar(17)" title="Ctrl+Q - Resume">^Q</button>
+                <button onclick="sendControlChar(19)" title="Ctrl+S - Pause">^S</button>
+            </div>
         </div>
         <div id="terminal"></div>
         <div class="status">
-            Status: <span id="status">Connecting...</span> | 
-            Channel: <span id="channel">SBC1</span> | 
+            Status: <span id="status">Connecting...</span> |
+            Channel: <span id="channel">SBC1</span> |
+            <label><input type="checkbox" id="localEcho" checked> Local Echo</label> |
             Press any key to type
         </div>
     </div>

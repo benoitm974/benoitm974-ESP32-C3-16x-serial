@@ -29,6 +29,26 @@ body {
     margin: 5px 0;
 }
 
+.control-buttons {
+    margin: 5px 0;
+    border-top: 1px solid #333;
+    padding-top: 5px;
+}
+
+.control-buttons button {
+    background: #333;
+    color: #ff6600;
+    border: 1px solid #ff6600;
+    font-size: 11px;
+    padding: 3px 6px;
+    margin: 1px;
+}
+
+.control-buttons button:hover {
+    background: #ff6600;
+    color: #000;
+}
+
 button {
     background: #222;
     color: #00ff00;
@@ -65,6 +85,16 @@ button.active {
     background: #111;
     border-top: 1px solid #333;
     font-size: 12px;
+}
+
+.status label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.status input[type="checkbox"] {
+    margin-right: 5px;
+    margin-left: 10px;
 }
 
 .cursor {

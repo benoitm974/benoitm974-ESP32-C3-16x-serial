@@ -92,9 +92,14 @@ void loop() {
                 Serial.print(c);
             }
             
-            // Filter out non-printable characters that could cause UTF-8 issues
-            // Allow printable ASCII (32-126), newline (10), carriage return (13), and tab (9)
-            if ((c >= 32 && c <= 126) || c == '\n' || c == '\r' || c == '\t') {
+            // Allow characters for proper terminal support:
+            // - Printable ASCII (32-126)
+            // - Common control characters: newline (10), carriage return (13), tab (9)
+            // - ESC character (27) for ANSI escape sequences
+            // - Backspace (8) for terminal editing
+            // - Control characters (1-31) for terminal control (Ctrl+A, Ctrl+C, etc.)
+            // - Exclude NULL (0) and DEL (127) which can cause issues
+            if ((c >= 1 && c <= 31) || (c >= 32 && c <= 126)) {
                 String charStr = String(c);
                 webSocketServer.broadcast(charStr);
             }
