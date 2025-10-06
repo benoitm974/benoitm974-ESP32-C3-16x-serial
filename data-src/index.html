@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32-C3 Serial Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="terminal-icon.svg">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ESP32-C3 Serial Terminal</h1>
+            <div class="channel-buttons">
+                <button id="btn0" class="active" onclick="selectChannel(0)">SBC1</button>
+                <button id="btn1" onclick="selectChannel(1)">SBC2</button>
+                <button id="btn2" onclick="selectChannel(2)">SBC3</button>
+                <button id="btn3" onclick="selectChannel(3)">SBC4</button>
+                <button id="btn4" onclick="selectChannel(4)">SBC5</button>
+            </div>
+        </div>
+        <div id="terminal"></div>
+        <div class="status">
+            Status: <span id="status">Connecting...</span> | 
+            Channel: <span id="channel">SBC1</span> | 
+            Press any key to type
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <style>
+      .terminal-bg { fill: #000000; }
+      .terminal-border { fill: none; stroke: #00ff00; stroke-width: 1.5; }
+      .terminal-text { fill: #00ff00; font-family: 'Courier New', monospace; font-size: 8px; }
+      .terminal-cursor { fill: #00ff00; }
+    </style>
+  </defs>
+  
+  <!-- Terminal window background -->
+  <rect class="terminal-bg" x="2" y="4" width="28" height="24" rx="2"/>
+  
+  <!-- Terminal window border -->
+  <rect class="terminal-border" x="2" y="4" width="28" height="24" rx="2"/>
+  
+  <!-- Terminal header bar -->
+  <rect class="terminal-border" x="2" y="4" width="28" height="6"/>
+  
+  <!-- Terminal header dots -->
+  <circle fill="#ff5555" cx="6" cy="7" r="1"/>
+  <circle fill="#ffaa00" cx="9" cy="7" r="1"/>
+  <circle fill="#00ff00" cx="12" cy="7" r="1"/>
+  
+  <!-- Terminal text lines -->
+  <text class="terminal-text" x="4" y="18">$&gt; ESP32</text>
+  <text class="terminal-text" x="4" y="24">MUX</text>
+  
+  <!-- Terminal cursor -->
+  <rect class="terminal-cursor" x="20" y="21" width="6" height="1"/>
+</svg>

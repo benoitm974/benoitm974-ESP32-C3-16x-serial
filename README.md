@@ -14,6 +14,7 @@ A minimal, real-time serial multiplexer using ESP32-C3 with WebSocket terminal i
    ```bash
    pio run --target upload
    ```
+   *(Filesystem uploads automatically!)*
 4. **Access the web interface** at the IP address shown on the OLED display
 
 ## 🎯 **Features**
@@ -22,7 +23,8 @@ A minimal, real-time serial multiplexer using ESP32-C3 with WebSocket terminal i
 - **16-Channel Serial Multiplexer**: Dual HP4067-based channel switching (0-15)
 - **OLED Status Display**: Shows IP address and connection status
 - **Status LED Indicator**: Visual WebSocket connection feedback
-- **Web Interface**: Green/black terminal styling
+- **Web Interface**: Green/black terminal styling with favicon
+- **LittleFS with Gzip Compression**: Optimized web asset delivery
 - **Minimal Dependencies**: Only 3 required libraries
 
 ## 🔧 **Hardware Requirements**
@@ -116,16 +118,29 @@ ABROBOT ESP32-C3 specific settings in [`include/oled_manager.h`](include/oled_ma
 PlatformIO libraries in [`platformio.ini`](platformio.ini):
 ```ini
 lib_deps =
-    adafruit/Adafruit SSD1306@^2.5.7
-    adafruit/Adafruit GFX Library@^1.11.5
+    olikraus/U8g2@^2.34.22
     links2004/WebSockets@^2.4.0
 ```
+
+### **4. LittleFS Web Assets**
+The project uses LittleFS with gzip compression for web assets:
+- **Source files**: [`data-src/`](data-src/) (editable HTML/CSS/JS/SVG)
+- **Compressed files**: [`data/`](data/) (auto-generated .gz files)
+- **Build script**: [`scripts/compress_data.py`](scripts/compress_data.py)
+
+**Build commands**:
+```bash
+pio run --target upload      # Upload firmware + web assets (automatic)
+pio run --target uploadfs    # Upload web assets only (manual)
+```
+
+See [`docs/littlefs-build-guide.md`](docs/littlefs-build-guide.md) for detailed build instructions.
 
 ## 🚀 **Usage Instructions**
 
 ### **1. Setup**
 1. **Configure WiFi**: Edit `include/credentials.h` with your network credentials
-2. **Upload Code**: Use PlatformIO to compile and upload to ESP32-C3
+2. **Upload Everything**: `pio run --target upload` (uploads firmware + web assets automatically)
 3. **Connect Hardware**: Wire HP4067 multiplexer and OLED display as shown above
 4. **Connect SBCs**: Connect your SBC devices to HP4067 channels Y0-Y4
 

@@ -15,6 +15,9 @@
 # Credentials file (contains sensitive WiFi information)
 include/credentials.h
 
+# Generated LittleFS data folder (auto-created from data-src/)
+data/
+
 # System files
 .DS_Store
 .DS_Store?

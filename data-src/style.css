@@ -1,0 +1,79 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+}
+
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: #111;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 18px;
+    color: #00ff00;
+}
+
+.channel-buttons {
+    margin: 5px 0;
+}
+
+button {
+    background: #222;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    padding: 5px 10px;
+    margin: 2px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+button:hover {
+    background: #00ff00;
+    color: #000;
+}
+
+button.active {
+    background: #00ff00;
+    color: #000;
+}
+
+#terminal {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    background: #000;
+    color: #00ff00;
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.status {
+    padding: 5px 10px;
+    background: #111;
+    border-top: 1px solid #333;
+    font-size: 12px;
+}
+
+.cursor {
+    background: #00ff00;
+    color: #000;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}

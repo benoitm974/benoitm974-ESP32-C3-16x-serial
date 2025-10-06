@@ -4,6 +4,7 @@
 #include <WebSocketsServer.h>
 #include <WiFi.h>
 #include <HardwareSerial.h>
+#include <LittleFS.h>
 #include "pins.h"
 
 // Forward declaration
@@ -70,9 +71,25 @@ private:
     void handleHTTPClient();
     
     /**
-     * Get embedded HTML page
+     * Serve file from LittleFS with proper MIME type and gzip handling
+     * @param client WiFi client to serve to
+     * @param path File path to serve
      */
-    String getHTMLPage();
+    void serveFile(WiFiClient& client, const String& path);
+    
+    /**
+     * Get MIME type for file extension
+     * @param filename File name or path
+     * @return MIME type string
+     */
+    String getMimeType(const String& filename);
+    
+    /**
+     * Check if file exists in LittleFS (with or without .gz extension)
+     * @param path File path to check
+     * @return actual file path if found, empty string if not found
+     */
+    String findFile(const String& path);
     
     /**
      * Handle channel selection command

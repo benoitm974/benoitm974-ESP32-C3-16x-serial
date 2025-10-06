@@ -14,6 +14,13 @@ void WebSocketServer::setReferences(MultiplexerController* multiplexer, Hardware
 bool WebSocketServer::init() {
     instance = this;
     
+    // Initialize LittleFS
+    if (!LittleFS.begin()) {
+        Serial.println("LittleFS initialization failed!");
+        return false;
+    }
+    Serial.println("LittleFS initialized successfully");
+    
     // Initialize WebSocket server
     webSocket = new WebSocketsServer(WEBSOCKET_PORT);
     webSocket->begin();
@@ -100,83 +107,105 @@ void WebSocketServer::handleHTTPClient() {
         String request = client.readStringUntil('\r');
         client.flush();
         
-        // Send HTTP response with embedded HTML
-        client.println("HTTP/1.1 200 OK");
-        client.println("Content-Type: text/html");
-        client.println("Connection: close");
-        client.println();
-        client.println(getHTMLPage());
+        // Parse the requested path
+        String path = "/";
+        int pathStart = request.indexOf(' ') + 1;
+        int pathEnd = request.indexOf(' ', pathStart);
+        if (pathStart > 0 && pathEnd > pathStart) {
+            path = request.substring(pathStart, pathEnd);
+        }
+        
+        // Default to index.html for root path
+        if (path == "/") {
+            path = "/index.html";
+        }
+        
+        // Serve the requested file
+        serveFile(client, path);
         
         client.stop();
-        Serial.println("HTTP client served");
+        Serial.print("HTTP client served: ");
+        Serial.println(path);
     }
 }
 
-String WebSocketServer::getHTMLPage() {
-    String html = "<!DOCTYPE html><html><head><title>ESP32 Serial Terminal</title>";
-    html += "<style>";
-    html += "body{margin:0;padding:0;background:#000;color:#00ff00;font-family:'Courier New',monospace;overflow:hidden;}";
-    html += ".container{height:100vh;display:flex;flex-direction:column;}";
-    html += ".header{background:#111;padding:10px;border-bottom:1px solid #333;}";
-    html += ".header h1{margin:0;font-size:18px;color:#00ff00;}";
-    html += ".channel-buttons{margin:5px 0;}";
-    html += "button{background:#222;color:#00ff00;border:1px solid #00ff00;padding:5px 10px;margin:2px;cursor:pointer;font-family:inherit;}";
-    html += "button:hover{background:#00ff00;color:#000;}";
-    html += "button.active{background:#00ff00;color:#000;}";
-    html += "#terminal{flex:1;padding:10px;overflow-y:auto;background:#000;color:#00ff00;white-space:pre-wrap;font-size:14px;line-height:1.2;}";
-    html += ".status{padding:5px 10px;background:#111;border-top:1px solid #333;font-size:12px;}";
-    html += ".cursor{background:#00ff00;color:#000;animation:blink 1s infinite;}";
-    html += "@keyframes blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}";
-    html += "</style></head><body>";
-    html += "<div class='container'>";
-    html += "<div class='header'>";
-    html += "<h1>ESP32 Serial Terminal</h1>";
-    html += "<div class='channel-buttons'>";
-    html += "<button id='btn0' class='active' onclick='selectChannel(0)'>SBC1</button>";
-    html += "<button id='btn1' onclick='selectChannel(1)'>SBC2</button>";
-    html += "<button id='btn2' onclick='selectChannel(2)'>SBC3</button>";
-    html += "<button id='btn3' onclick='selectChannel(3)'>SBC4</button>";
-    html += "<button id='btn4' onclick='selectChannel(4)'>SBC5</button>";
-    html += "</div></div>";
-    html += "<div id='terminal'></div>";
-    html += "<div class='status'>Status: <span id='status'>Connecting...</span> | Channel: <span id='channel'>SBC1</span> | Press any key to type</div>";
-    html += "</div>";
-    html += "<script>";
-    html += "const ws=new WebSocket('ws://'+window.location.hostname+':81');";
-    html += "const terminal=document.getElementById('terminal');";
-    html += "const status=document.getElementById('status');";
-    html += "const channelSpan=document.getElementById('channel');";
-    html += "let currentChannel=0;";
-    html += "ws.onopen=function(){status.textContent='Connected';};";
-    html += "ws.onclose=function(){status.textContent='Disconnected';};";
-    html += "ws.onerror=function(){status.textContent='Error';};";
-    html += "ws.onmessage=function(event){";
-    html += "let data=event.data;";
-    html += "for(let i=0;i<data.length;i++){";
-    html += "let char=data[i];";
-    html += "if(char==='\\n'){terminal.textContent+='\\n';}";
-    html += "else if(char==='\\r'){terminal.textContent+='\\n';}";
-    html += "else if(char==='\\t'){terminal.textContent+='    ';}";
-    html += "else if(char==='\\b'){terminal.textContent=terminal.textContent.slice(0,-1);}";
-    html += "else if(char.charCodeAt(0)>=32){terminal.textContent+=char;}";
-    html += "}";
-    html += "terminal.scrollTop=terminal.scrollHeight;};";
-    html += "function selectChannel(channel){currentChannel=channel;ws.send('CHANNEL:'+channel);";
-    html += "channelSpan.textContent='SBC'+(channel+1);";
-    html += "document.querySelectorAll('button').forEach(b=>b.classList.remove('active'));";
-    html += "document.getElementById('btn'+channel).classList.add('active');}";
-    html += "document.addEventListener('keydown',function(event){";
-    html += "if(event.ctrlKey||event.altKey||event.metaKey)return;";
-    html += "event.preventDefault();";
-    html += "let char=event.key;";
-    html += "if(char.length===1){ws.send(char);terminal.textContent+=char;}";
-    html += "else if(char==='Enter'){ws.send('\\n');terminal.textContent+='\\n';}";
-    html += "else if(char==='Backspace'){ws.send('\\b');terminal.textContent=terminal.textContent.slice(0,-1);}";
-    html += "else if(char==='Tab'){ws.send('\\t');terminal.textContent+='\\t';}";
-    html += "terminal.scrollTop=terminal.scrollHeight;});";
-    html += "selectChannel(0);";
-    html += "</script></body></html>";
-    return html;
+void WebSocketServer::serveFile(WiFiClient& client, const String& path) {
+    // Find the actual file (may have .gz extension)
+    String actualPath = findFile(path);
+    
+    if (actualPath.isEmpty()) {
+        // File not found - send 404
+        client.println("HTTP/1.1 404 Not Found");
+        client.println("Content-Type: text/plain");
+        client.println("Connection: close");
+        client.println();
+        client.println("File not found");
+        return;
+    }
+    
+    // Open the file
+    File file = LittleFS.open(actualPath, "r");
+    if (!file) {
+        client.println("HTTP/1.1 500 Internal Server Error");
+        client.println("Content-Type: text/plain");
+        client.println("Connection: close");
+        client.println();
+        client.println("Failed to open file");
+        return;
+    }
+    
+    // Get MIME type
+    String mimeType = getMimeType(path);
+    bool isGzipped = actualPath.endsWith(".gz");
+    
+    // Send HTTP headers
+    client.println("HTTP/1.1 200 OK");
+    client.print("Content-Type: ");
+    client.println(mimeType);
+    client.print("Content-Length: ");
+    client.println(file.size());
+    
+    if (isGzipped) {
+        client.println("Content-Encoding: gzip");
+    }
+    
+    client.println("Cache-Control: max-age=86400"); // Cache for 24 hours
+    client.println("Connection: close");
+    client.println();
+    
+    // Send file content
+    while (file.available()) {
+        client.write(file.read());
+    }
+    
+    file.close();
+}
+
+String WebSocketServer::getMimeType(const String& filename) {
+    if (filename.endsWith(".html")) return "text/html";
+    if (filename.endsWith(".css")) return "text/css";
+    if (filename.endsWith(".js")) return "application/javascript";
+    if (filename.endsWith(".svg")) return "image/svg+xml";
+    if (filename.endsWith(".json")) return "application/json";
+    if (filename.endsWith(".txt")) return "text/plain";
+    if (filename.endsWith(".ico")) return "image/x-icon";
+    return "text/plain";
+}
+
+String WebSocketServer::findFile(const String& path) {
+    // First try the exact path
+    if (LittleFS.exists(path)) {
+        return path;
+    }
+    
+    // Then try with .gz extension
+    String gzPath = path + ".gz";
+    if (LittleFS.exists(gzPath)) {
+        return gzPath;
+    }
+    
+    // File not found
+    return "";
 }
 
 void WebSocketServer::handleChannelCommand(const String& command) {
