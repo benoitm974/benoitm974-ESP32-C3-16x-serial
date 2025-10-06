@@ -39,9 +39,11 @@ void setup() {
     multiplexer.selectChannel(0); // Start with SBC1
     Serial.println("Multiplexer initialized - Channel 0 selected");
     
-    // Initialize SBC serial communication
+    // Initialize SBC serial communication with improved configuration
     SerialSBC.begin(UART_BAUD_RATE, SERIAL_8N1, RX_PIN, TX_PIN);
-    Serial.println("SBC Serial initialized");
+    SerialSBC.setRxBufferSize(1024); // Increase buffer size for better data handling
+    Serial.printf("SBC Serial initialized at %d baud (8N1)\n", UART_BAUD_RATE);
+    Serial.printf("RX Pin: GPIO%d, TX Pin: GPIO%d\n", RX_PIN, TX_PIN);
     
     // Initialize WiFi
     if (!wifiManager.init()) {
@@ -82,9 +84,20 @@ void loop() {
     if (SerialSBC.available()) {
         while (SerialSBC.available()) {
             char c = SerialSBC.read();
-            String charStr = String(c);
-            webSocketServer.broadcast(charStr);
-            Serial.print(c); // Echo to debug console
+            
+            // Debug: Print character code to help diagnose communication issues
+            if (c < 32 || c > 126) {
+                Serial.printf("[0x%02X]", (unsigned char)c);
+            } else {
+                Serial.print(c);
+            }
+            
+            // Filter out non-printable characters that could cause UTF-8 issues
+            // Allow printable ASCII (32-126), newline (10), carriage return (13), and tab (9)
+            if ((c >= 32 && c <= 126) || c == '\n' || c == '\r' || c == '\t') {
+                String charStr = String(c);
+                webSocketServer.broadcast(charStr);
+            }
         }
     }
     

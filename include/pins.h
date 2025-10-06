@@ -24,7 +24,13 @@
 #define TX_PIN 1         // GPIO1 - Safe for UART TX
 #define UART_TX_PIN 1    // Alias for compatibility
 #define UART_RX_PIN 0    // Alias for compatibility
-#define UART_BAUD_RATE 115200
+// Common baud rates for SBC communication
+// Try these if you get garbled text:
+#define UART_BAUD_RATE 115200   // Default - most common
+// #define UART_BAUD_RATE 9600     // Alternative 1 - very reliable
+// #define UART_BAUD_RATE 38400    // Alternative 2 - good balance
+// #define UART_BAUD_RATE 57600    // Alternative 3 - faster
+// #define UART_BAUD_RATE 230400   // Alternative 4 - very fast
 
 // HP4067 Multiplexer control pins - ESP32-C3 GPIO (avoiding GPIO8 status LED)
 #define MUX_S0_PIN 3    // GPIO3 - LSB (A0)

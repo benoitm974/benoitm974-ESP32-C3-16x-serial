@@ -77,7 +77,32 @@ void WebSocketServer::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payloa
             
         case WStype_TEXT:
             {
-                String message = String((char*)payload);
+                // Ensure payload is null-terminated and valid UTF-8
+                if (length == 0) break;
+                
+                // Validate that all bytes are valid UTF-8 before processing
+                bool isValidUTF8 = true;
+                for (size_t i = 0; i < length; i++) {
+                    if (payload[i] > 127) {
+                        // For simplicity, reject any non-ASCII characters
+                        // This prevents UTF-8 decoding errors from SBC boot data
+                        isValidUTF8 = false;
+                        break;
+                    }
+                }
+                
+                if (!isValidUTF8) {
+                    Serial.printf("WebSocket client %u sent non-ASCII data - ignoring\n", num);
+                    break;
+                }
+                
+                // Create a proper null-terminated string
+                char* buffer = new char[length + 1];
+                memcpy(buffer, payload, length);
+                buffer[length] = '\0';
+                
+                String message = String(buffer);
+                delete[] buffer;
                 
                 // Handle channel commands
                 if (message.startsWith("CHANNEL:")) {
@@ -94,6 +119,23 @@ void WebSocketServer::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payloa
                     }
                 }
             }
+            break;
+            
+        case WStype_BIN:
+            // Handle binary data - just ignore it for now
+            Serial.printf("WebSocket client %u sent binary data (%u bytes) - ignoring\n", num, length);
+            break;
+            
+        case WStype_ERROR:
+            Serial.printf("WebSocket client %u error\n", num);
+            break;
+            
+        case WStype_FRAGMENT_TEXT_START:
+        case WStype_FRAGMENT_BIN_START:
+        case WStype_FRAGMENT:
+        case WStype_FRAGMENT_FIN:
+            // Handle fragmented messages - ignore for now
+            Serial.printf("WebSocket client %u sent fragmented data - ignoring\n", num);
             break;
             
         default:
