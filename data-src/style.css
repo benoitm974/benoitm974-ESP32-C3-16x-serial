@@ -63,6 +63,63 @@ body {
     color: #000 !important;
 }
 
+.reconnect-button {
+    background: #444 !important;
+    color: #0099ff !important;
+    border: 1px solid #0099ff !important;
+    font-size: 11px !important;
+    padding: 3px 6px !important;
+}
+
+.reconnect-button:hover {
+    background: #0099ff !important;
+    color: #000 !important;
+}
+
+.reconnect-button:disabled {
+    background: #222 !important;
+    color: #666 !important;
+    border: 1px solid #666 !important;
+    cursor: not-allowed !important;
+}
+
+/* Connection status animations */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.reconnecting {
+    animation: spin 1s linear infinite;
+}
+
+/* Enhanced status indicator styles */
+#status {
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+/* Connection quality indicators */
+.connection-good {
+    color: #00ff00 !important;
+}
+
+.connection-unstable {
+    color: #ffff00 !important;
+}
+
+.connection-poor {
+    color: #ff9900 !important;
+}
+
+.connection-error {
+    color: #ff0000 !important;
+}
+
+.connection-reconnecting {
+    color: #0099ff !important;
+}
+
 button {
     background: #222;
     color: #00ff00;
@@ -88,6 +145,14 @@ button.active {
     padding: 0;
     overflow: hidden;
     background: #000;
+    /* Allow the terminal container to receive focus */
+    outline: none;
+    position: relative;
+}
+
+/* Ensure terminal can receive focus in both modes */
+#terminal:focus {
+    outline: 1px solid #333;
 }
 
 /* xterm.js specific styling */

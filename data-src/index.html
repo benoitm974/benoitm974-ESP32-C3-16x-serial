@@ -26,6 +26,9 @@
                 <button onclick="sendControlChar(17)" title="Ctrl+Q - Resume">^Q</button>
                 <button onclick="sendControlChar(19)" title="Ctrl+S - Pause">^S</button>
                 |
+                <button id="reconnect-btn" onclick="handleReconnect()" title="Manual Reconnect" class="reconnect-button">
+                    🔄 Reconnect
+                </button>
                 <button id="terminal-toggle" onclick="toggleTerminalMode()" title="Switch terminal implementation" class="terminal-switch">
                     <span id="toggle-text">Switch to Basic</span>
                 </button>
@@ -33,9 +36,16 @@
         </div>
         <div id="terminal"></div>
         <div class="status">
-            Status: <span id="status">Loading...</span> | 
-            Channel: <span id="channel">SBC1</span> | 
+            Status: <span id="status">Loading...</span> |
+            Channel: <span id="channel">SBC1</span> |
             Terminal: <span id="terminal-type">Detecting...</span> |
+            Debug:
+            <select id="debug-level" onchange="changeDebugLevel(this.value)" title="Set debug logging level">
+                <option value="0">Errors</option>
+                <option value="1" selected>Warnings</option>
+                <option value="2">Info</option>
+                <option value="3">Debug</option>
+            </select> |
             <label id="local-echo-container" style="display: none;">
                 <input type="checkbox" id="localEcho" checked> Local Echo
             </label>
@@ -74,14 +84,14 @@
         // Initialize terminal with specified mode
         function initializeTerminal(mode) {
             if (mode === 'xterm' && window.terminalState.xtermAvailable) {
-                initXtermTerminal();
+                window.initXtermTerminal();
             } else {
-                initBasicTerminal();
+                window.initBasicTerminal();
             }
             
             // Initialize WebSocket if not already done
-            if (!window.terminalState.ws) {
-                initWebSocket();
+            if (!window.terminalState.connectionManager) {
+                window.initWebSocket();
             }
         }
         
@@ -101,6 +111,14 @@
                 initXtermTerminal();
                 toggleButton.textContent = 'Switch to Basic';
             }
+            
+            // Focus will be restored by the init functions, but add a small delay
+            // to ensure the DOM is fully updated before focusing
+            setTimeout(() => {
+                if (window.focusTerminal) {
+                    window.focusTerminal();
+                }
+            }, 150);
         }
         
         // Destroy current terminal
@@ -114,6 +132,47 @@
             
             window.terminalState.currentTerminal = null;
         }
+        
+        // Change debug level function
+        function changeDebugLevel(level) {
+            localStorage.setItem('terminal_debug_level', level);
+            // Show notification to user
+            const levelNames = ['Errors only', 'Warnings', 'Info', 'Debug'];
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 8px 15px;
+                background: #4444ff;
+                color: white;
+                border-radius: 5px;
+                font-size: 12px;
+                z-index: 1000;
+                opacity: 0.9;
+                transition: opacity 0.3s;
+            `;
+            notification.textContent = `Debug level set to: ${levelNames[level]}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 2000);
+        }
+        
+        // Set initial debug level from localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLevel = localStorage.getItem('terminal_debug_level');
+            if (savedLevel !== null) {
+                document.getElementById('debug-level').value = savedLevel;
+            }
+        });
         
         // Load the unified terminal script
         const unifiedScript = document.createElement('script');
