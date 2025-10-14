@@ -92,14 +92,10 @@ void loop() {
                 Serial.print(c);
             }
             
-            // Allow characters for proper terminal support:
-            // - Printable ASCII (32-126)
-            // - Common control characters: newline (10), carriage return (13), tab (9)
-            // - ESC character (27) for ANSI escape sequences
-            // - Backspace (8) for terminal editing
-            // - Control characters (1-31) for terminal control (Ctrl+A, Ctrl+C, etc.)
-            // - Exclude NULL (0) and DEL (127) which can cause issues
-            if ((c >= 1 && c <= 31) || (c >= 32 && c <= 126)) {
+            // For xterm.js version: Allow ALL characters (0-255)
+            // xterm.js can handle all ANSI sequences, UTF-8, and control characters properly
+            // Only exclude NULL (0) which can cause string termination issues
+            if (c != 0) {
                 String charStr = String(c);
                 webSocketServer.broadcast(charStr);
             }

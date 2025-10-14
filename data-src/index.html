@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
     <link rel="icon" type="image/svg+xml" href="terminal-icon.svg">
 </head>
 <body>
@@ -17,6 +18,11 @@
                 <button id="btn2" onclick="selectChannel(2)">SBC3</button>
                 <button id="btn3" onclick="selectChannel(3)">SBC4</button>
                 <button id="btn4" onclick="selectChannel(4)">SBC5</button>
+                |
+                <button id="reconnect-btn" onclick="handleReconnect()" title="Manual Reconnect">Reconnect</button>
+                <button id="terminal-toggle" onclick="toggleTerminalMode()" title="Switch terminal implementation">
+                    <span id="toggle-text">Switch to Basic</span>
+                </button>
             </div>
             <div class="control-buttons">
                 <button onclick="sendControlChar(3)" title="Ctrl+C - Interrupt">^C</button>
@@ -28,12 +34,152 @@
         </div>
         <div id="terminal"></div>
         <div class="status">
-            Status: <span id="status">Connecting...</span> |
+            Status: <span id="status">Loading...</span> |
             Channel: <span id="channel">SBC1</span> |
-            <label><input type="checkbox" id="localEcho" checked> Local Echo</label> |
-            Press any key to type
+            Terminal: <span id="terminal-type">Detecting...</span> |
+            Debug:
+            <select id="debug-level" onchange="changeDebugLevel(this.value)" title="Set debug logging level">
+                <option value="0">Errors</option>
+                <option value="1" selected>Warnings</option>
+                <option value="2">Info</option>
+                <option value="3">Debug</option>
+            </select> |
+            <label id="local-echo-container" style="display: none;">
+                <input type="checkbox" id="localEcho" checked> Local Echo
+            </label>
         </div>
     </div>
-    <script src="script.js"></script>
+    
+    <script>
+        // Global terminal state
+        window.terminalState = {
+            mode: 'loading', // 'loading', 'xterm', 'basic'
+            xtermAvailable: false,
+            currentTerminal: null,
+            ws: null,
+            isConnected: false,
+            currentChannel: 0,
+            messageBuffer: [] // Store messages when switching terminals
+        };
+        
+        // Try to load xterm.js from CDN first
+        function loadXtermJS() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js';
+            script.onload = function() {
+                console.log('xterm.js loaded from CDN');
+                window.terminalState.xtermAvailable = true;
+                initializeTerminal('xterm');
+            };
+            script.onerror = function() {
+                console.log('xterm.js CDN failed, using basic terminal');
+                window.terminalState.xtermAvailable = false;
+                initializeTerminal('basic');
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Initialize terminal with specified mode
+        function initializeTerminal(mode) {
+            if (mode === 'xterm' && window.terminalState.xtermAvailable) {
+                window.initXtermTerminal();
+            } else {
+                window.initBasicTerminal();
+            }
+            
+            // Initialize WebSocket if not already done
+            if (!window.terminalState.connectionManager) {
+                window.initWebSocket();
+            }
+        }
+        
+        // Toggle between terminal modes
+        function toggleTerminalMode() {
+            const currentMode = window.terminalState.mode;
+            const toggleButton = document.getElementById('toggle-text');
+            
+            if (currentMode === 'xterm' && window.terminalState.xtermAvailable) {
+                // Switch to basic
+                destroyCurrentTerminal();
+                initBasicTerminal();
+                toggleButton.textContent = 'Switch to xterm.js';
+            } else if (currentMode === 'basic' && window.terminalState.xtermAvailable) {
+                // Switch to xterm
+                destroyCurrentTerminal();
+                initXtermTerminal();
+                toggleButton.textContent = 'Switch to Basic';
+            }
+            
+            // Focus will be restored by the init functions, but add a small delay
+            // to ensure the DOM is fully updated before focusing
+            setTimeout(() => {
+                if (window.focusTerminal) {
+                    window.focusTerminal();
+                }
+            }, 150);
+        }
+        
+        // Destroy current terminal
+        function destroyCurrentTerminal() {
+            const terminal = document.getElementById('terminal');
+            terminal.innerHTML = '';
+            
+            if (window.terminalState.currentTerminal && window.terminalState.currentTerminal.dispose) {
+                window.terminalState.currentTerminal.dispose();
+            }
+            
+            window.terminalState.currentTerminal = null;
+        }
+        
+        // Change debug level function
+        function changeDebugLevel(level) {
+            localStorage.setItem('terminal_debug_level', level);
+            // Show notification to user
+            const levelNames = ['Errors only', 'Warnings', 'Info', 'Debug'];
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 8px 15px;
+                background: #4444ff;
+                color: white;
+                border-radius: 5px;
+                font-size: 12px;
+                z-index: 1000;
+                opacity: 0.9;
+                transition: opacity 0.3s;
+            `;
+            notification.textContent = `Debug level set to: ${levelNames[level]}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 2000);
+        }
+        
+        // Set initial debug level from localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLevel = localStorage.getItem('terminal_debug_level');
+            if (savedLevel !== null) {
+                document.getElementById('debug-level').value = savedLevel;
+            }
+        });
+        
+        // Load the unified terminal script
+        const unifiedScript = document.createElement('script');
+        unifiedScript.src = 'script.js';
+        unifiedScript.onload = function() {
+            // Start by trying to load xterm.js
+            loadXtermJS();
+        };
+        document.head.appendChild(unifiedScript);
+    </script>
 </body>
 </html>

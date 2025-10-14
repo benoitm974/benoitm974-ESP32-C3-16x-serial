@@ -27,14 +27,45 @@ body {
 
 .channel-buttons {
     margin: 5px 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .control-buttons {
     margin: 5px 0;
     border-top: 1px solid #333;
     padding-top: 5px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
+/* Channel buttons style */
+.channel-buttons button {
+    background: #111;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    font-size: 11px;
+    padding: 4px 8px;
+    margin: 2px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    min-width: 60px;
+    text-align: center;
+}
+
+.channel-buttons button:hover {
+    background: #00ff00;
+    color: #000;
+}
+
+.channel-buttons button.active {
+    background: #00ff00;
+    color: #000;
+}
+
+/* Control buttons style (original width and orange color) */
 .control-buttons button {
     background: #333;
     color: #ff6600;
@@ -49,36 +80,119 @@ body {
     color: #000;
 }
 
-button {
-    background: #222;
+/* Unified style for reconnect and switch buttons */
+#reconnect-btn, #terminal-toggle {
+    background: #444 !important;
+    color: #0099ff !important;
+    border: 1px solid #0099ff !important;
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+}
+
+#reconnect-btn:hover, #terminal-toggle:hover {
+    background: #0099ff !important;
+    color: #000 !important;
+}
+
+#reconnect-btn:disabled {
+    background: #222 !important;
+    color: #666 !important;
+    border: 1px solid #666 !important;
+    cursor: not-allowed !important;
+}
+
+/* Separator styling */
+.channel-buttons > :not(button):not(:last-child) {
     color: #00ff00;
-    border: 1px solid #00ff00;
-    padding: 5px 10px;
-    margin: 2px;
-    cursor: pointer;
-    font-family: inherit;
+    margin: 0 5px;
+    font-weight: bold;
 }
 
-button:hover {
-    background: #00ff00;
-    color: #000;
+/* Connection status animations */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
-button.active {
-    background: #00ff00;
-    color: #000;
+.reconnecting {
+    animation: spin 1s linear infinite;
 }
+
+/* Enhanced status indicator styles */
+#status {
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+/* Connection quality indicators */
+.connection-good {
+    color: #00ff00 !important;
+}
+
+.connection-unstable {
+    color: #ffff00 !important;
+}
+
+.connection-poor {
+    color: #ff9900 !important;
+}
+
+.connection-error {
+    color: #ff0000 !important;
+}
+
+.connection-reconnecting {
+    color: #0099ff !important;
+}
+
+/* Button styles are now unified above */
 
 #terminal {
     flex: 1;
-    padding: 10px;
-    overflow-y: auto;
+    padding: 0;
+    overflow: hidden;
     background: #000;
-    color: #00ff00;
-    white-space: pre-wrap;
-    font-size: 14px;
-    line-height: 1.2;
+    /* Allow the terminal container to receive focus */
+    outline: none;
+    position: relative;
 }
+
+/* Ensure terminal can receive focus in both modes */
+#terminal:focus {
+    outline: 1px solid #333;
+}
+
+/* xterm.js specific styling */
+.xterm {
+    height: 100% !important;
+    width: 100% !important;
+}
+
+.xterm-viewport {
+    background-color: #000 !important;
+}
+
+.xterm-screen {
+    background-color: #000 !important;
+}
+
+/* Override xterm.js default colors to match our theme */
+.xterm .xterm-color-0 { color: #000000; }
+.xterm .xterm-color-1 { color: #cd0000; }
+.xterm .xterm-color-2 { color: #00cd00; }
+.xterm .xterm-color-3 { color: #cdcd00; }
+.xterm .xterm-color-4 { color: #0000ee; }
+.xterm .xterm-color-5 { color: #cd00cd; }
+.xterm .xterm-color-6 { color: #00cdcd; }
+.xterm .xterm-color-7 { color: #e5e5e5; }
+.xterm .xterm-color-8 { color: #7f7f7f; }
+.xterm .xterm-color-9 { color: #ff0000; }
+.xterm .xterm-color-10 { color: #00ff00; }
+.xterm .xterm-color-11 { color: #ffff00; }
+.xterm .xterm-color-12 { color: #5c5cff; }
+.xterm .xterm-color-13 { color: #ff00ff; }
+.xterm .xterm-color-14 { color: #00ffff; }
+.xterm .xterm-color-15 { color: #ffffff; }
 
 .status {
     padding: 5px 10px;
@@ -106,4 +220,14 @@ button.active {
 @keyframes blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
+}
+
+/* Terminal mode indicator */
+#terminal-type {
+    font-weight: bold;
+}
+
+/* Loading state */
+.loading {
+    color: #ffff00;
 }

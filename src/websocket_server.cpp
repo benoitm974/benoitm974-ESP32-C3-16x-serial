@@ -80,6 +80,21 @@ void WebSocketServer::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payloa
                 // Ensure payload is null-terminated and valid UTF-8
                 if (length == 0) break;
                 
+                // Create a proper null-terminated string
+                char* buffer = new char[length + 1];
+                memcpy(buffer, payload, length);
+                buffer[length] = '\0';
+                
+                String message = String(buffer);
+                delete[] buffer;
+                
+                // Handle ping/pong for heartbeat
+                if (message == "ping") {
+                    instance->webSocket->sendTXT(num, "pong");
+                    Serial.printf("WebSocket client %u: ping -> pong\n", num);
+                    break;
+                }
+                
                 // Validate that all bytes are valid UTF-8 before processing
                 bool isValidUTF8 = true;
                 for (size_t i = 0; i < length; i++) {
@@ -95,14 +110,6 @@ void WebSocketServer::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payloa
                     Serial.printf("WebSocket client %u sent non-ASCII data - ignoring\n", num);
                     break;
                 }
-                
-                // Create a proper null-terminated string
-                char* buffer = new char[length + 1];
-                memcpy(buffer, payload, length);
-                buffer[length] = '\0';
-                
-                String message = String(buffer);
-                delete[] buffer;
                 
                 // Handle channel commands
                 if (message.startsWith("CHANNEL:")) {
