@@ -176,3 +176,36 @@ See [`docs/littlefs-build-guide.md`](docs/littlefs-build-guide.md) for detailed 
 ### **Web Interface**
 - **Status Bar**: Shows connection status and current channel
 - **Real-time Updates**: Immediate feedback for all operations
+
+## 🔧 **Troubleshooting**
+
+### **WebSocket UTF-8 Errors (Fixed)**
+If you previously encountered "Could not decode a text frame as UTF-8" errors:
+- ✅ **Fixed in current version** - No action needed
+- 🔧 **If still occurring**: Clear browser cache and reconnect
+- 🐛 **For debugging**: Enable debug logging with `localStorage.setItem('terminal_debug_level', '3')`
+
+### **Debug Features**
+- **Frame Testing**: Run `testWebSocketFrames()` in browser console
+- **Connection Quality**: Monitor ping times and connection stability
+- **Binary Frame Support**: Automatic handling of SBC boot sequences
+
+### **Performance**
+- **Optimized Buffering**: Reduced WebSocket frame overhead
+- **Smart Frame Types**: Automatic text/binary frame selection
+- **Error Recovery**: Graceful handling of invalid UTF-8 sequences
+
+### **Common Issues**
+1. **No WiFi Connection**: Check credentials in `include/credentials.h`
+2. **OLED Not Working**: Verify I2C wiring (GPIO5/6) and address 0x3C
+3. **WebSocket Connection Fails**: Check browser console for errors
+4. **SBC Not Responding**: Verify multiplexer wiring and channel selection
+
+### **Debug Commands**
+```javascript
+// In browser console:
+localStorage.setItem('terminal_debug_level', '3');  // Enable debug logging
+testWebSocketFrames();                              // Test frame handling
+```
+
+For detailed technical information about the UTF-8 fix, see [`docs/websocket-utf8-fix.md`](docs/websocket-utf8-fix.md).

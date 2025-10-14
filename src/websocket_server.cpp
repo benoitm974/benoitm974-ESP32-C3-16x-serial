@@ -60,7 +60,23 @@ void WebSocketServer::setChannel(int channel) {
 
 void WebSocketServer::broadcast(const String& data) {
     if (!initialized) return;
-    webSocket->broadcastTXT(data.c_str());
+    
+    // Check if data contains non-ASCII characters that might cause UTF-8 issues
+    bool hasNonASCII = false;
+    for (int i = 0; i < data.length(); i++) {
+        if ((unsigned char)data[i] > 127) {
+            hasNonASCII = true;
+            break;
+        }
+    }
+    
+    if (hasNonASCII) {
+        // Send as binary frame to avoid UTF-8 validation issues
+        webSocket->broadcastBIN((uint8_t*)data.c_str(), data.length());
+    } else {
+        // Send as text frame for normal ASCII data
+        webSocket->broadcastTXT(data.c_str());
+    }
 }
 
 void WebSocketServer::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
@@ -77,39 +93,7 @@ void WebSocketServer::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payloa
             
         case WStype_TEXT:
             {
-                // Ensure payload is null-terminated and valid UTF-8
-                if (length == 0) break;
-                
-                // Create a proper null-terminated string
-                char* buffer = new char[length + 1];
-                memcpy(buffer, payload, length);
-                buffer[length] = '\0';
-                
-                String message = String(buffer);
-                delete[] buffer;
-                
-                // Handle ping/pong for heartbeat
-                if (message == "ping") {
-                    instance->webSocket->sendTXT(num, "pong");
-                    Serial.printf("WebSocket client %u: ping -> pong\n", num);
-                    break;
-                }
-                
-                // Validate that all bytes are valid UTF-8 before processing
-                bool isValidUTF8 = true;
-                for (size_t i = 0; i < length; i++) {
-                    if (payload[i] > 127) {
-                        // For simplicity, reject any non-ASCII characters
-                        // This prevents UTF-8 decoding errors from SBC boot data
-                        isValidUTF8 = false;
-                        break;
-                    }
-                }
-                
-                if (!isValidUTF8) {
-                    Serial.printf("WebSocket client %u sent non-ASCII data - ignoring\n", num);
-                    break;
-                }
+                String message = String((char*)payload);
                 
                 // Handle channel commands
                 if (message.startsWith("CHANNEL:")) {
@@ -126,23 +110,6 @@ void WebSocketServer::webSocketEvent(uint8_t num, WStype_t type, uint8_t* payloa
                     }
                 }
             }
-            break;
-            
-        case WStype_BIN:
-            // Handle binary data - just ignore it for now
-            Serial.printf("WebSocket client %u sent binary data (%u bytes) - ignoring\n", num, length);
-            break;
-            
-        case WStype_ERROR:
-            Serial.printf("WebSocket client %u error\n", num);
-            break;
-            
-        case WStype_FRAGMENT_TEXT_START:
-        case WStype_FRAGMENT_BIN_START:
-        case WStype_FRAGMENT:
-        case WStype_FRAGMENT_FIN:
-            // Handle fragmented messages - ignore for now
-            Serial.printf("WebSocket client %u sent fragmented data - ignoring\n", num);
             break;
             
         default:
@@ -269,4 +236,58 @@ bool WebSocketServer::hasConnectedClients() {
 
 int WebSocketServer::getCurrentChannel() {
     return currentChannel;
+}
+
+void WebSocketServer::addToBuffer(char c) {
+    charBuffer[bufferPos++] = (uint8_t)c;
+    if (bufferPos == 1) {
+        lastBufferTime = millis();
+    }
+    
+    // Check if buffer is full or timeout has elapsed
+    if (bufferPos >= BUFFER_SIZE || (millis() - lastBufferTime > BUFFER_TIMEOUT_MS)) {
+        flushBuffer();
+    }
+}
+
+void WebSocketServer::flushBuffer() {
+    if (bufferPos > 0) {
+        sendBufferedData();
+        bufferPos = 0;
+    }
+}
+
+void WebSocketServer::sendBufferedData() {
+    if (!initialized || bufferPos == 0) return;
+    
+    // Check if buffer contains valid UTF-8 sequence
+    if (isValidUTF8Sequence(charBuffer, bufferPos)) {
+        // Send as text frame for valid UTF-8
+        webSocket->broadcastTXT(charBuffer, bufferPos);
+    } else {
+        // Send as binary frame for invalid UTF-8 to prevent decode errors
+        webSocket->broadcastBIN(charBuffer, bufferPos);
+    }
+}
+
+bool WebSocketServer::isValidUTF8Sequence(const uint8_t* data, size_t length) {
+    for (size_t i = 0; i < length; ) {
+        uint8_t byte = data[i];
+        
+        if (byte <= 0x7F) {
+            i++; // ASCII
+        } else if ((byte & 0xE0) == 0xC0) {
+            if (i + 1 >= length || (data[i + 1] & 0xC0) != 0x80) return false;
+            i += 2; // 2-byte sequence
+        } else if ((byte & 0xF0) == 0xE0) {
+            if (i + 2 >= length || (data[i + 1] & 0xC0) != 0x80 || (data[i + 2] & 0xC0) != 0x80) return false;
+            i += 3; // 3-byte sequence
+        } else if ((byte & 0xF8) == 0xF0) {
+            if (i + 3 >= length || (data[i + 1] & 0xC0) != 0x80 || (data[i + 2] & 0xC0) != 0x80 || (data[i + 3] & 0xC0) != 0x80) return false;
+            i += 4; // 4-byte sequence
+        } else {
+            return false; // Invalid UTF-8 start byte
+        }
+    }
+    return true;
 }

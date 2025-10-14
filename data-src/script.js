@@ -74,234 +74,99 @@ class Logger {
     static debug(message, ...args) { this.log(LogLevel.DEBUG, message, ...args); }
 }
 
-// WebSocket Connection Manager
-class WebSocketConnectionManager {
-    constructor() {
-        this.ws = null;
-        this.isConnected = false;
-        this.connectionState = 'disconnected'; // 'disconnected', 'connecting', 'connected', 'reconnecting', 'failed'
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 10;
-        this.reconnectDelays = [1000, 2000, 4000, 8000, 15000, 30000]; // Exponential backoff
-        this.heartbeatInterval = 15000; // 15 seconds
-        this.pingTimeout = 3000; // 3 seconds
-        this.heartbeatTimer = null;
-        this.pingTimer = null;
-        this.manualReconnect = false;
-        this.connectionQuality = 'good'; // 'good', 'unstable', 'poor'
-        this.lastPingTime = 0;
-        this.callbacks = {
-            onConnect: [],
-            onDisconnect: [],
-            onMessage: [],
-            onStateChange: []
-        };
-    }
-
-    connect() {
-        if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
-            return;
-        }
-
-        this.setState('connecting');
-        this.ws = new WebSocket('ws://' + window.location.hostname + ':81');
+// Initialize WebSocket connection
+window.initWebSocket = function initWebSocket() {
+    let ws = new WebSocket('ws://' + window.location.hostname + ':81/');
+    
+    ws.onopen = function() {
+        window.terminalState.isConnected = true;
+        window.terminalState.ws = ws;
         
-        this.ws.onopen = () => {
-            this.isConnected = true;
-            this.connectionState = 'connected';
-            this.reconnectAttempts = 0;
-            this.connectionQuality = 'good';
-            this.startHeartbeat();
-            this.setState('connected');
-            this.triggerCallbacks('onConnect');
-        };
-
-        this.ws.onclose = (event) => {
-            this.isConnected = false;
-            this.stopHeartbeat();
-            
-            if (!this.manualReconnect) {
-                this.setState('disconnected');
-                this.triggerCallbacks('onDisconnect');
-                
-                // Only auto-reconnect if it wasn't a manual disconnect
-                if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                    this.scheduleReconnect();
-                } else {
-                    this.setState('failed');
-                }
-            }
-            
-            this.manualReconnect = false;
-        };
-
-        this.ws.onerror = (error) => {
-            Logger.error('WebSocket error:', error);
-            this.connectionQuality = 'poor';
-            this.updateStatusIndicator();
-        };
-
-        this.ws.onmessage = (event) => {
-            // Handle pong response for heartbeat
-            if (event.data === 'pong') {
-                const pingTime = Date.now() - this.lastPingTime;
-                this.updateConnectionQuality(pingTime);
-                clearTimeout(this.pingTimer);
-                return;
-            }
-            
-            this.triggerCallbacks('onMessage', event.data);
-        };
-    }
-
-    disconnect() {
-        this.manualReconnect = true;
-        this.stopHeartbeat();
-        if (this.ws) {
-            this.ws.close();
-            this.ws = null;
-        }
-        this.isConnected = false;
-        this.setState('disconnected');
-    }
-
-    forceReconnect() {
-        this.disconnect();
-        this.reconnectAttempts = 0;
-        setTimeout(() => this.connect(), 100);
-    }
-
-    scheduleReconnect() {
-        this.setState('reconnecting');
-        const delay = this.getReconnectDelay();
-        
-        setTimeout(() => {
-            this.reconnectAttempts++;
-            this.connect();
-        }, delay);
-    }
-
-    getReconnectDelay() {
-        if (this.reconnectAttempts < this.reconnectDelays.length) {
-            return this.reconnectDelays[this.reconnectAttempts];
-        }
-        return this.reconnectDelays[this.reconnectDelays.length - 1];
-    }
-
-    startHeartbeat() {
-        this.heartbeatTimer = setInterval(() => {
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.lastPingTime = Date.now();
-                this.ws.send('ping');
-                
-                // Set timeout for pong response
-                this.pingTimer = setTimeout(() => {
-                    Logger.warn('Ping timeout - connection may be unstable');
-                    this.connectionQuality = 'unstable';
-                    this.updateStatusIndicator();
-                }, this.pingTimeout);
-            }
-        }, this.heartbeatInterval);
-    }
-
-    stopHeartbeat() {
-        if (this.heartbeatTimer) {
-            clearInterval(this.heartbeatTimer);
-            this.heartbeatTimer = null;
-        }
-        if (this.pingTimer) {
-            clearTimeout(this.pingTimer);
-            this.pingTimer = null;
-        }
-    }
-
-    updateConnectionQuality(pingTime) {
-        if (pingTime < 100) {
-            this.connectionQuality = 'good';
-        } else if (pingTime < 500) {
-            this.connectionQuality = 'unstable';
-        } else {
-            this.connectionQuality = 'poor';
-        }
-        this.updateStatusIndicator();
-    }
-
-    setState(newState) {
-        const oldState = this.connectionState;
-        this.connectionState = newState;
-        this.updateStatusIndicator();
-        this.triggerCallbacks('onStateChange', { oldState, newState });
-    }
-
-    updateStatusIndicator() {
+        // Update status display
         const statusElement = document.getElementById('status');
-        if (!statusElement) return;
-
-        let statusText = '';
-        let statusIcon = '';
-
-        switch (this.connectionState) {
-            case 'connected':
-                statusText = 'Connected';
-                statusIcon = this.connectionQuality === 'good' ? '●' :
-                           this.connectionQuality === 'unstable' ? '◐' : '○';
-                break;
-            case 'connecting':
-                statusText = 'Connecting';
-                statusIcon = '⟳';
-                break;
-            case 'reconnecting':
-                statusText = `Reconnecting (${this.reconnectAttempts}/${this.maxReconnectAttempts})`;
-                statusIcon = '⟳';
-                break;
-            case 'disconnected':
-                statusText = 'Disconnected';
-                statusIcon = '○';
-                break;
-            case 'failed':
-                statusText = 'Connection Failed';
-                statusIcon = '○';
-                break;
+        if (statusElement) {
+            statusElement.textContent = 'Connected';
         }
-
-        statusElement.innerHTML = `${statusIcon} ${statusText}`;
         
-        // Add color coding
-        statusElement.className = '';
-        if (this.connectionState === 'connected') {
-            if (this.connectionQuality === 'good') {
-                statusElement.style.color = '#00ff00';
-            } else if (this.connectionQuality === 'unstable') {
-                statusElement.style.color = '#ffff00';
-            } else {
-                statusElement.style.color = '#ff9900';
+        if (window.terminalState.mode === 'xterm' && window.terminalState.currentTerminal) {
+            window.terminalState.currentTerminal.writeln('\x1b[32mWebSocket connected!\x1b[0m');
+        } else if (window.terminalState.mode === 'basic') {
+            window.terminalState.currentTerminal.textContent += 'WebSocket connected!\n';
+            window.terminalState.currentTerminal.scrollTop = window.terminalState.currentTerminal.scrollHeight;
+        }
+        
+        selectChannel(0);
+    };
+    
+    ws.onclose = function() {
+        window.terminalState.isConnected = false;
+        
+        // Update status display
+        const statusElement = document.getElementById('status');
+        if (statusElement) {
+            statusElement.textContent = 'Disconnected';
+        }
+        
+        if (window.terminalState.mode === 'xterm' && window.terminalState.currentTerminal) {
+            window.terminalState.currentTerminal.writeln('\x1b[31mWebSocket disconnected!\x1b[0m');
+        } else if (window.terminalState.mode === 'basic') {
+            window.terminalState.currentTerminal.textContent += 'WebSocket disconnected!\n';
+            window.terminalState.currentTerminal.scrollTop = window.terminalState.currentTerminal.scrollHeight;
+        }
+        
+        // Auto-reconnect after 2 seconds
+        setTimeout(function() {
+            if (!window.terminalState.isConnected) {
+                initWebSocket();
             }
-        } else if (this.connectionState === 'reconnecting') {
-            statusElement.style.color = '#0099ff';
-        } else {
-            statusElement.style.color = '#ff0000';
+        }, 2000);
+    };
+    
+    ws.onerror = function(error) {
+        Logger.error('WebSocket error:', error);
+        
+        // Update status display
+        const statusElement = document.getElementById('status');
+        if (statusElement) {
+            statusElement.textContent = 'Error';
         }
-    }
-
-    send(data) {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(data);
-            return true;
+        
+        // Check if this is the UTF-8 decoding error we're trying to fix
+        if (error.message && error.message.includes('UTF-8')) {
+            Logger.error('UTF-8 decoding error detected - this should be fixed now');
         }
-        return false;
-    }
-
-    on(event, callback) {
-        if (this.callbacks[event]) {
-            this.callbacks[event].push(callback);
+    };
+    
+    // Simple message handler that handles both text and binary data
+    ws.onmessage = function(event) {
+        try {
+            // Handle both text and binary data
+            let data;
+            if (event.data instanceof ArrayBuffer) {
+                // Convert binary data to string
+                data = new TextDecoder('utf-8', { fatal: false }).decode(event.data);
+            } else {
+                // Handle regular text data
+                data = event.data;
+            }
+            
+            // Store message in buffer for terminal switching
+            window.terminalState.messageBuffer.push(data);
+            
+            // Keep only last 1000 messages to prevent memory issues
+            if (window.terminalState.messageBuffer.length > 1000) {
+                window.terminalState.messageBuffer.shift();
+            }
+            
+            // Display message in current terminal
+            displayMessage(data);
+            
+        } catch (error) {
+            Logger.error('Failed to process WebSocket message:', error);
         }
-    }
-
-    triggerCallbacks(event, data) {
-        if (this.callbacks[event]) {
-            this.callbacks[event].forEach(callback => callback(data));
-        }
-    }
+    };
+    
+    window.terminalState.ws = ws;
 }
 
 // Initialize xterm.js terminal
@@ -342,8 +207,8 @@ window.initXtermTerminal = function initXtermTerminal() {
     
     // Handle terminal input - xterm.js automatically handles Ctrl+C, Ctrl+D, etc.
     term.onData(data => {
-        if (window.terminalState.connectionManager) {
-            window.terminalState.connectionManager.send(data);
+        if (window.terminalState.ws && window.terminalState.ws.readyState === WebSocket.OPEN) {
+            window.terminalState.ws.send(data);
         }
     });
     
@@ -408,7 +273,7 @@ function setupBasicKeyboardHandler() {
     document.removeEventListener('keydown', window.basicKeyHandler);
     
     window.basicKeyHandler = function(event) {
-        if (!window.terminalState.connectionManager || !window.terminalState.connectionManager.isConnected) {
+        if (!window.terminalState.ws || window.terminalState.ws.readyState !== WebSocket.OPEN) {
             return;
         }
         
@@ -449,22 +314,22 @@ function setupBasicKeyboardHandler() {
         let localEcho = document.getElementById('localEcho').checked;
         
         if (char.length === 1) {
-            window.terminalState.connectionManager.send(char);
+            window.terminalState.ws.send(char);
             if (localEcho) {
                 window.terminalState.currentTerminal.textContent += char;
             }
         } else if (char === 'Enter') {
-            window.terminalState.connectionManager.send('\n');
+            window.terminalState.ws.send('\n');
             if (localEcho) {
                 window.terminalState.currentTerminal.textContent += '\n';
             }
         } else if (char === 'Backspace') {
-            window.terminalState.connectionManager.send('\b');
+            window.terminalState.ws.send('\b');
             if (localEcho) {
                 window.terminalState.currentTerminal.textContent = window.terminalState.currentTerminal.textContent.slice(0, -1);
             }
         } else if (char === 'Tab') {
-            window.terminalState.connectionManager.send('\t');
+            window.terminalState.ws.send('\t');
             if (localEcho) {
                 window.terminalState.currentTerminal.textContent += '\t';
             }
@@ -476,164 +341,14 @@ function setupBasicKeyboardHandler() {
     document.addEventListener('keydown', window.basicKeyHandler);
 }
 
-// Initialize WebSocket with connection manager
-window.initWebSocket = function initWebSocket() {
-    // Create connection manager if it doesn't exist
-    if (!window.terminalState.connectionManager) {
-        window.terminalState.connectionManager = new WebSocketConnectionManager();
-        
-        // Set up connection event handlers
-        window.terminalState.connectionManager.on('onConnect', () => {
-            window.terminalState.isConnected = true;
-            window.terminalState.ws = window.terminalState.connectionManager.ws;
-            
-            if (window.terminalState.mode === 'xterm' && window.terminalState.currentTerminal) {
-                window.terminalState.currentTerminal.writeln('\x1b[32mWebSocket connected!\x1b[0m');
-            } else if (window.terminalState.mode === 'basic') {
-                window.terminalState.currentTerminal.textContent += 'WebSocket connected!\n';
-                window.terminalState.currentTerminal.scrollTop = window.terminalState.currentTerminal.scrollHeight;
-            }
-            
-            selectChannel(0);
-        });
-        
-        window.terminalState.connectionManager.on('onDisconnect', () => {
-            window.terminalState.isConnected = false;
-            
-            if (window.terminalState.mode === 'xterm' && window.terminalState.currentTerminal) {
-                window.terminalState.currentTerminal.writeln('\x1b[31mWebSocket disconnected!\x1b[0m');
-            } else if (window.terminalState.mode === 'basic') {
-                window.terminalState.currentTerminal.textContent += 'WebSocket disconnected!\n';
-                window.terminalState.currentTerminal.scrollTop = window.terminalState.currentTerminal.scrollHeight;
-            }
-        });
-        
-        window.terminalState.connectionManager.on('onMessage', (data) => {
-            // Store message in buffer for terminal switching
-            window.terminalState.messageBuffer.push(data);
-            
-            // Keep only last 1000 messages to prevent memory issues
-            if (window.terminalState.messageBuffer.length > 1000) {
-                window.terminalState.messageBuffer.shift();
-            }
-            
-            displayMessage(data);
-        });
-        
-        window.terminalState.connectionManager.on('onStateChange', ({ newState }) => {
-            // Handle connection state changes if needed
-            if (newState === 'failed') {
-                showNotification('Connection failed. Please try reconnecting manually.', 'error');
-            }
-        });
-    }
-    
-    // Start connection
-    window.terminalState.connectionManager.connect();
-}
-
 // Manual reconnect function
 window.manualReconnect = function manualReconnect() {
-    Logger.debug('manualReconnect called, terminalState:', window.terminalState);
-    Logger.debug('connectionManager available:', !!window.terminalState.connectionManager);
-    Logger.debug('initWebSocket function available:', typeof window.initWebSocket);
-    
-    if (window.terminalState.connectionManager) {
-        Logger.debug('connectionManager.forceReconnect type:', typeof window.terminalState.connectionManager.forceReconnect);
-        
-        if (typeof window.terminalState.connectionManager.forceReconnect === 'function') {
-            Logger.debug('Calling connectionManager.forceReconnect()');
-            window.terminalState.connectionManager.forceReconnect();
-        } else {
-            Logger.warn('forceReconnect method not found, trying manual disconnect/connect...');
-            // Try to manually trigger reconnection
-            Logger.debug('Attempting manual reconnection...');
-            window.terminalState.connectionManager.disconnect();
-            setTimeout(() => {
-                window.terminalState.connectionManager.connect();
-            }, 100);
-        }
-    } else {
-        Logger.warn('Connection manager not available, attempting to initialize...');
-        Logger.debug('Creating new connection manager...');
-        
-        // Create connection manager directly
-        window.terminalState.connectionManager = new WebSocketConnectionManager();
-        Logger.debug('Connection manager created:', !!window.terminalState.connectionManager);
-        
-        // Set up connection event handlers
-        window.terminalState.connectionManager.on('onConnect', () => {
-            window.terminalState.isConnected = true;
-            window.terminalState.ws = window.terminalState.connectionManager.ws;
-            
-            if (window.terminalState.mode === 'xterm' && window.terminalState.currentTerminal) {
-                window.terminalState.currentTerminal.writeln('\x1b[32mWebSocket connected!\x1b[0m');
-            } else if (window.terminalState.mode === 'basic') {
-                window.terminalState.currentTerminal.textContent += 'WebSocket connected!\n';
-                window.terminalState.currentTerminal.scrollTop = window.terminalState.currentTerminal.scrollHeight;
-            }
-        });
-        
-        window.terminalState.connectionManager.on('onDisconnect', () => {
-            window.terminalState.isConnected = false;
-            
-            if (window.terminalState.mode === 'xterm' && window.terminalState.currentTerminal) {
-                window.terminalState.currentTerminal.writeln('\x1b[31mWebSocket disconnected!\x1b[0m');
-            } else if (window.terminalState.mode === 'basic') {
-                window.terminalState.currentTerminal.textContent += 'WebSocket disconnected!\n';
-                window.terminalState.currentTerminal.scrollTop = window.terminalState.currentTerminal.scrollHeight;
-            }
-        });
-        
-        // Try to reconnect immediately
-        setTimeout(() => {
-            if (window.terminalState.connectionManager && typeof window.terminalState.connectionManager.forceReconnect === 'function') {
-                Logger.debug('Calling forceReconnect after initialization');
-                window.terminalState.connectionManager.forceReconnect();
-            } else {
-                Logger.error('forceReconnect still not available after direct initialization');
-            }
-        }, 100);
+    if (window.terminalState.ws) {
+        window.terminalState.ws.close();
     }
-}
-
-// Handle reconnect with focus restoration
-window.handleReconnect = function handleReconnect() {
-    manualReconnect();
-    // Restore focus after attempting reconnection
-    setTimeout(() => focusTerminal(), 250);
-}
-
-// Show notification function
-function showNotification(message, type = 'info') {
-    // Create a simple notification that doesn't interfere with the terminal
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        padding: 10px 15px;
-        background: ${type === 'error' ? '#ff4444' : '#4444ff'};
-        color: white;
-        border-radius: 5px;
-        font-size: 12px;
-        z-index: 1000;
-        opacity: 0.9;
-        transition: opacity 0.3s;
-    `;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    // Auto-remove after 3 seconds
     setTimeout(() => {
-        notification.style.opacity = '0';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 3000);
+        initWebSocket();
+    }, 100);
 }
 
 // Display message in current terminal
@@ -779,6 +494,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Initialize status display
+    const statusElement = document.getElementById('status');
+    if (statusElement) {
+        statusElement.textContent = 'Loading...';
+    }
 });
 
-Logger.info('Unified terminal script loaded');
+Logger.info('Simplified terminal script loaded with UTF-8 error handling');

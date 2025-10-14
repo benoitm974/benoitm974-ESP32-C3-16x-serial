@@ -39,11 +39,9 @@ void setup() {
     multiplexer.selectChannel(0); // Start with SBC1
     Serial.println("Multiplexer initialized - Channel 0 selected");
     
-    // Initialize SBC serial communication with improved configuration
+    // Initialize SBC serial communication
     SerialSBC.begin(UART_BAUD_RATE, SERIAL_8N1, RX_PIN, TX_PIN);
-    SerialSBC.setRxBufferSize(1024); // Increase buffer size for better data handling
-    Serial.printf("SBC Serial initialized at %d baud (8N1)\n", UART_BAUD_RATE);
-    Serial.printf("RX Pin: GPIO%d, TX Pin: GPIO%d\n", RX_PIN, TX_PIN);
+    Serial.println("SBC Serial initialized");
     
     // Initialize WiFi
     if (!wifiManager.init()) {
@@ -80,7 +78,7 @@ void loop() {
     // Handle WebSocket server
     webSocketServer.loop();
     
-    // Forward data from SBC to WebSocket clients (character by character)
+    // Forward data from SBC to WebSocket clients using buffering
     if (SerialSBC.available()) {
         while (SerialSBC.available()) {
             char c = SerialSBC.read();
@@ -92,14 +90,19 @@ void loop() {
                 Serial.print(c);
             }
             
-            // For xterm.js version: Allow ALL characters (0-255)
-            // xterm.js can handle all ANSI sequences, UTF-8, and control characters properly
+            // Use buffering system for proper UTF-8 handling
             // Only exclude NULL (0) which can cause string termination issues
             if (c != 0) {
-                String charStr = String(c);
-                webSocketServer.broadcast(charStr);
+                webSocketServer.addToBuffer(c);
             }
         }
+    }
+    
+    // Check if buffer needs to be flushed periodically
+    static unsigned long lastFlushCheck = 0;
+    if (millis() - lastFlushCheck > 100) { // Check every 100ms
+        webSocketServer.flushBuffer();
+        lastFlushCheck = millis();
     }
     
     // Handle status LED blinking when WebSocket connected (inverted logic)

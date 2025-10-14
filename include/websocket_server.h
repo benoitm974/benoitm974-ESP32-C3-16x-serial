@@ -43,6 +43,24 @@ public:
     void broadcast(const String& data);
 
     /**
+     * Add character to buffer for UTF-8 processing
+     * @param c Character to add to buffer
+     */
+    void addToBuffer(char c);
+
+    /**
+     * Force flush the character buffer
+     */
+    void flushBuffer();
+
+    /**
+     * Send binary data to all connected WebSocket clients
+     * @param data Binary data to send
+     * @param length Length of data in bytes
+     */
+    void broadcastBinary(const uint8_t* data, size_t length);
+
+    /**
      * Get current WebSocket connection status
      * @return true if at least one client is connected
      */
@@ -59,6 +77,14 @@ private:
     WiFiServer* httpServer = nullptr;
     int currentChannel = 0;
     bool initialized = false;
+
+    // Character buffering for UTF-8 handling
+    static const size_t BUFFER_SIZE = 256;
+    static const unsigned long BUFFER_TIMEOUT_MS = 50;
+
+    uint8_t charBuffer[BUFFER_SIZE];
+    size_t bufferPos = 0;
+    unsigned long lastBufferTime = 0;
 
     /**
      * WebSocket event handler
@@ -95,6 +121,19 @@ private:
      * Handle channel selection command
      */
     void handleChannelCommand(const String& command);
+
+    /**
+     * Check if buffer contains valid UTF-8 sequence
+     * @param data Buffer data to check
+     * @param length Buffer length
+     * @return true if valid UTF-8, false otherwise
+     */
+    bool isValidUTF8Sequence(const uint8_t* data, size_t length);
+
+    /**
+     * Send buffered data using appropriate frame type
+     */
+    void sendBufferedData();
 };
 
 #endif // WEBSOCKET_SERVER_H
