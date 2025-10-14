@@ -27,14 +27,45 @@ body {
 
 .channel-buttons {
     margin: 5px 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .control-buttons {
     margin: 5px 0;
     border-top: 1px solid #333;
     padding-top: 5px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
+/* Channel buttons style */
+.channel-buttons button {
+    background: #111;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    font-size: 11px;
+    padding: 4px 8px;
+    margin: 2px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    min-width: 60px;
+    text-align: center;
+}
+
+.channel-buttons button:hover {
+    background: #00ff00;
+    color: #000;
+}
+
+.channel-buttons button.active {
+    background: #00ff00;
+    color: #000;
+}
+
+/* Control buttons style (original width and orange color) */
 .control-buttons button {
     background: #333;
     color: #ff6600;
@@ -49,38 +80,32 @@ body {
     color: #000;
 }
 
-.terminal-switch {
-    background: #444 !important;
-    color: #00ccff !important;
-    border: 1px solid #00ccff !important;
-    font-size: 12px !important;
-    padding: 4px 8px !important;
-    margin-left: 10px !important;
-}
-
-.terminal-switch:hover {
-    background: #00ccff !important;
-    color: #000 !important;
-}
-
-.reconnect-button {
+/* Unified style for reconnect and switch buttons */
+#reconnect-btn, #terminal-toggle {
     background: #444 !important;
     color: #0099ff !important;
     border: 1px solid #0099ff !important;
     font-size: 11px !important;
-    padding: 3px 6px !important;
+    padding: 4px 8px !important;
 }
 
-.reconnect-button:hover {
+#reconnect-btn:hover, #terminal-toggle:hover {
     background: #0099ff !important;
     color: #000 !important;
 }
 
-.reconnect-button:disabled {
+#reconnect-btn:disabled {
     background: #222 !important;
     color: #666 !important;
     border: 1px solid #666 !important;
     cursor: not-allowed !important;
+}
+
+/* Separator styling */
+.channel-buttons > :not(button):not(:last-child) {
+    color: #00ff00;
+    margin: 0 5px;
+    font-weight: bold;
 }
 
 /* Connection status animations */
@@ -120,25 +145,7 @@ body {
     color: #0099ff !important;
 }
 
-button {
-    background: #222;
-    color: #00ff00;
-    border: 1px solid #00ff00;
-    padding: 5px 10px;
-    margin: 2px;
-    cursor: pointer;
-    font-family: inherit;
-}
-
-button:hover {
-    background: #00ff00;
-    color: #000;
-}
-
-button.active {
-    background: #00ff00;
-    color: #000;
-}
+/* Button styles are now unified above */
 
 #terminal {
     flex: 1;

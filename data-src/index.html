@@ -18,6 +18,11 @@
                 <button id="btn2" onclick="selectChannel(2)">SBC3</button>
                 <button id="btn3" onclick="selectChannel(3)">SBC4</button>
                 <button id="btn4" onclick="selectChannel(4)">SBC5</button>
+                |
+                <button id="reconnect-btn" onclick="handleReconnect()" title="Manual Reconnect">Reconnect</button>
+                <button id="terminal-toggle" onclick="toggleTerminalMode()" title="Switch terminal implementation">
+                    <span id="toggle-text">Switch to Basic</span>
+                </button>
             </div>
             <div class="control-buttons">
                 <button onclick="sendControlChar(3)" title="Ctrl+C - Interrupt">^C</button>
@@ -25,13 +30,6 @@
                 <button onclick="sendControlChar(26)" title="Ctrl+Z - Suspend">^Z</button>
                 <button onclick="sendControlChar(17)" title="Ctrl+Q - Resume">^Q</button>
                 <button onclick="sendControlChar(19)" title="Ctrl+S - Pause">^S</button>
-                |
-                <button id="reconnect-btn" onclick="handleReconnect()" title="Manual Reconnect" class="reconnect-button">
-                    🔄 Reconnect
-                </button>
-                <button id="terminal-toggle" onclick="toggleTerminalMode()" title="Switch terminal implementation" class="terminal-switch">
-                    <span id="toggle-text">Switch to Basic</span>
-                </button>
             </div>
         </div>
         <div id="terminal"></div>
