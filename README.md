@@ -118,7 +118,9 @@ const char* WIFI_PASSWORD = "your_wifi_password";
 ```
 
 ### **2. OLED Display Configuration**
-ABROBOT ESP32-C3 specific settings in [`include/oled_manager.h`](include/oled_manager.h):
+
+the screen of this board seems to have multiple version it seems for my version turning to  U8g2 solves it and avoid previous offset/buffer tweak in toher libraries...
+OUTDATED for other display libs/ ABROBOT ESP32-C3 specific settings in [`include/oled_manager.h`](include/oled_manager.h):
 ```cpp
 #define DISPLAY_OFFSET_X 30    // ABROBOT specification
 #define DISPLAY_OFFSET_Y 12    // ABROBOT specification
