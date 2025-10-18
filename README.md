@@ -2,6 +2,8 @@
 
 A minimal, real-time serial multiplexer using ESP32-C3 with WebSocket terminal interface for managing multiple SBC (Single Board Computer) connections.
 
+![Image description](./docs/serial.png)
+
 ## 🚀 **Quick Setup**
 
 1. **Clone the repository**
