@@ -1,6 +1,16 @@
 # ESP32-C3 Serial Multiplexer
 
-A minimal, real-time serial multiplexer using ESP32-C3 with WebSocket terminal interface for managing multiple SBC (Single Board Computer) connections.
+web-based serial terminal multiplexer
+
+Turn One ESP32 Into 16 Serial Consoles - Access All Your SBCs From Any Browser!
+
+$10 DIY Alternative to $500 Serial Console Servers
+Open-source ESP32-C3 serial multiplexer with real-time WebSocket terminal - Control 16 devices from one browser tab
+Manage Raspberry Pi clusters, server farms, and embedded systems remotely without expensive KVM switches
+
+uses: ESP32-C3 with 0.43 screen and analog multiplexer CD74HC4067 probably works wirh 74HC4051
+
+Key Features: Browser-based terminal | Real-time WebSocket connection | 115200+ baud support | Analog MUX for hardware switching | No software overhead | Open-source hardware & firmware
 
 ![Image description](./docs/serial.png)
 
@@ -208,6 +218,17 @@ If you previously encountered "Could not decode a text frame as UTF-8" errors:
 // In browser console:
 localStorage.setItem('terminal_debug_level', '3');  // Enable debug logging
 testWebSocketFrames();                              // Test frame handling
+
+16-port USB serial console server
+web-based serial terminal multiplexer
+ESP32 UART switch matrix
+browser KVM serial console
+DIY server management controller
+Raspberry Pi cluster management
+Homelab server administration
+Network device console access (routers, switches, firewalls)
+Embedded systems debugging
+Remote SBC fleet management
 ```
 
 For detailed technical information about the UTF-8 fix, see [`docs/websocket-utf8-fix.md`](docs/websocket-utf8-fix.md).
